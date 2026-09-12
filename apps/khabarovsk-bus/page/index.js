@@ -8,7 +8,7 @@ const logger = Logger.getLogger("khv-bus");
 const time = new Time();
 
 const W = 390;
-const BAND_H = 46;
+const BAND_H = 50;
 const NEAREST_N = 5;
 const DEFAULT_POS = { lat: 48.5000302, lng: 135.0979337 };
 
@@ -28,15 +28,15 @@ const ITEM_CFG = {
   item_bg_color: C.card,
   item_bg_radius: 14,
   text_view: [
-    { x: 58, y: 4, w: 172, h: 28, key: "name", color: C.text, text_size: 23, align_h: hmUI.align.LEFT },
-    { x: 58, y: 34, w: 172, h: 24, key: "dir", color: C.muted, text_size: 16, align_h: hmUI.align.LEFT },
-    { x: 228, y: 4, w: 104, h: 28, key: "eta", color: C.green, text_size: 23, align_h: hmUI.align.RIGHT },
-    { x: 228, y: 34, w: 104, h: 24, key: "dist", color: C.muted, text_size: 16, align_h: hmUI.align.RIGHT },
+    { x: 54, y: 2, w: 150, h: 26, key: "name", color: C.text, text_size: 23, align_h: hmUI.align.LEFT },
+    { x: 54, y: 28, w: 150, h: 22, key: "dir", color: C.muted, text_size: 16, align_h: hmUI.align.LEFT },
+    { x: 196, y: 2, w: 104, h: 26, key: "eta", color: C.green, text_size: 23, align_h: hmUI.align.RIGHT },
+    { x: 196, y: 28, w: 104, h: 22, key: "dist", color: C.muted, text_size: 16, align_h: hmUI.align.RIGHT },
   ],
   text_view_count: 4,
   image_view: [{ x: 8, y: 16, w: 34, h: 34, key: "icon" }],
   image_view_count: 1,
-  item_height: 64,
+  item_height: 58,
 };
 
 const ARRIVAL_CFG = {
@@ -44,8 +44,8 @@ const ARRIVAL_CFG = {
   item_bg_color: C.card,
   item_bg_radius: 14,
   text_view: [
-    { x: 58, y: 4, w: 176, h: 52, key: "route", color: C.text, text_size: 23, align_h: hmUI.align.LEFT },
-    { x: 228, y: 4, w: 104, h: 52, key: "eta", color: C.green, text_size: 23, align_h: hmUI.align.RIGHT },
+    { x: 54, y: 4, w: 150, h: 52, key: "route", color: C.text, text_size: 23, align_h: hmUI.align.LEFT },
+    { x: 196, y: 4, w: 104, h: 52, key: "eta", color: C.green, text_size: 23, align_h: hmUI.align.RIGHT },
   ],
   text_view_count: 2,
   image_view: [{ x: 8, y: 13, w: 34, h: 34, key: "icon" }],
@@ -216,7 +216,7 @@ Page(
 
     statusLine() {
       statusWidget = this.text(
-        22, 416, W - 44, 22, this.statusText(), 15, this.statusColor(
+        34, 392, W - 68, 22, this.statusText(), 15, this.statusColor(
           lastOk ? (Date.now() - lastOk) / 1000 : 0
         ),
         hmUI.align.LEFT
@@ -235,8 +235,8 @@ Page(
     },
 
     header(title, onBack, subtitle) {
-      const h = subtitle ? 62 : BAND_H;
-      const titleY = subtitle ? 4 : 7;
+      const h = subtitle ? 64 : 50;
+      const titleY = subtitle ? 8 : 14;
       const back = () => {
         if (onBack) onBack();
       };
@@ -252,15 +252,15 @@ Page(
           })
         );
       if (onBack) {
-        headBtn(20, titleY, 28, 30, "‹", 30, hmUI.align.CENTER_H);
-        headBtn(56, titleY, W - 196, 30, title, 25, hmUI.align.LEFT);
-        if (subtitle) headBtn(56, 33, W - 196, 24, subtitle, 17, hmUI.align.LEFT, C.bandSub);
+        headBtn(32, titleY, 28, 30, "‹", 30, hmUI.align.CENTER_H);
+        headBtn(74, titleY, W - 226, 30, title, 25, hmUI.align.LEFT);
+        if (subtitle) headBtn(74, 36, W - 226, 24, subtitle, 17, hmUI.align.LEFT, C.bandSub);
       } else {
-        this.add(hmUI.createWidget(hmUI.widget.IMG, { x: 22, y: 8, w: 30, h: 30, src: "bus.png" }));
-        this.text(60, 7, W - 196, 32, title, 27, C.bandText);
+        this.add(hmUI.createWidget(hmUI.widget.IMG, { x: 32, y: 15, w: 30, h: 30, src: "bus.png" }));
+        this.text(74, 14, W - 226, 32, title, 27, C.bandText);
       }
       clockWidget = headBtn(
-        W - 136, titleY + 2, 112, 30, clockText(), 22, hmUI.align.RIGHT, C.bandSub
+        W - 152, titleY + 1, 112, 30, clockText(), 22, hmUI.align.RIGHT, C.bandSub
       );
     },
 
@@ -289,12 +289,12 @@ Page(
     renderList() {
       mode = "list";
       this.clear();
-      this.text(22, BAND_H + 4, W - 44, 22, "Ближайшие остановки", 16, C.muted);
+      this.text(34, BAND_H + 6, W - 68, 22, "Ближайшие остановки", 16, C.muted);
       const data = this.listData();
       listWidget = this.add(
         hmUI.createWidget(hmUI.widget.SCROLL_LIST, {
-          x: 20, y: BAND_H + 32, w: W - 40, h: 330,
-          item_height: 64, item_space: 6,
+          x: 26, y: BAND_H + 28, w: W - 52, h: 312,
+          item_height: 58, item_space: 4,
           item_config: [ITEM_CFG], item_config_count: 1,
           data_array: data, data_count: data.length,
           data_type_config: [{ start: 0, end: data.length, type_id: 1 }],
@@ -328,15 +328,15 @@ Page(
       this.clear();
 
       const top = 70;
-      this.text(22, top, W - 44, 20, "Ближайшие автобусы", 16, C.muted);
+      this.text(34, top, W - 68, 20, "Ближайшие автобусы", 16, C.muted);
 
       if (!currentArrivals.length) {
-        this.text(22, top + 34, W - 44, 24, "Загрузка...", 20, C.muted);
+        this.text(34, top + 34, W - 68, 24, "Загрузка...", 20, C.muted);
       } else {
         const data = this.detailData();
         listWidget = this.add(
           hmUI.createWidget(hmUI.widget.SCROLL_LIST, {
-            x: 20, y: top + 26, w: W - 40, h: 306,
+            x: 26, y: top + 26, w: W - 52, h: 264,
             item_height: 60, item_space: 6,
             item_config: [ARRIVAL_CFG], item_config_count: 1,
             data_array: data, data_count: data.length,
@@ -362,17 +362,17 @@ Page(
 
       const num = mins(busA.sec, arrivalsAt);
       busNumberWidget = this.text(
-        0, 54, W, 136, String(num), 128, C.green,
+        0, 52, W, 122, String(num), 116, C.green,
         hmUI.align.CENTER_H, hmUI.align.CENTER_V
       );
-      this.text(0, 190, W, 24, "минут до прибытия", 18, C.muted, hmUI.align.CENTER_H);
+      this.text(0, 176, W, 24, "минут до прибытия", 18, C.muted, hmUI.align.CENTER_H);
 
       this.add(
         hmUI.createWidget(hmUI.widget.FILL_RECT, {
-          x: 24, y: 224, w: W - 48, h: 196, radius: 18, color: C.card,
+          x: 32, y: 208, w: W - 64, h: 176, radius: 18, color: C.card,
         })
       );
-      this.text(40, 238, W - 80, 22, "Следующий рейс", 15, C.muted);
+      this.text(48, 220, W - 96, 22, "Следующий рейс", 14, C.muted);
 
       let next = null;
       for (let i = index + 1; i < currentArrivals.length; i++) {
@@ -382,20 +382,20 @@ Page(
         }
       }
       if (next) {
-        this.text(40, 258, W - 80, 34, `через ${mins(next.sec, arrivalsAt)} мин`, 27, C.text);
+        this.text(48, 240, W - 96, 32, `через ${mins(next.sec, arrivalsAt)} мин`, 26, C.text);
       } else {
-        this.text(40, 260, W - 80, 30, "больше нет данных", 19, C.muted);
+        this.text(48, 242, W - 96, 30, "больше нет данных", 18, C.muted);
       }
 
-      this.text(40, 298, W - 80, 22, "Сейчас между остановками", 15, C.muted);
+      this.text(48, 278, W - 96, 22, "Сейчас между остановками", 14, C.muted);
       vehicleWidget = this.add(
         hmUI.createWidget(hmUI.widget.TEXT, {
-          x: 40, y: 320, w: W - 80, h: 54, color: C.text, text_size: 17,
+          x: 48, y: 300, w: W - 96, h: 48, color: C.text, text_size: 16,
           align_h: hmUI.align.LEFT, align_v: hmUI.align.TOP,
           text_style: hmUI.text_style.WRAP, text: "…",
         })
       );
-      vehicleKmWidget = this.text(40, 378, W - 80, 26, "", 17, C.green);
+      vehicleKmWidget = this.text(48, 350, W - 96, 26, "", 17, C.green);
 
       this.statusLine();
       const station = stops[currentIndex];
