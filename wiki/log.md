@@ -1,0 +1,159 @@
+# Журнал операций
+
+Append-only. Формат записи: `## [YYYY-MM-DD] действие | краткое описание`.
+
+## [2026-09-12] ingest | Промт-задание и концепция LLM-вики
+Загружены `raw/promt-agent-zeppos-gts4-ubuntu.md` и `raw/llm-wiki.md`. Создана схема
+`AGENTS.md`, каталог `wiki/` и черновик `overview.md`.
+
+## [2026-09-12] setup | Развёрнута среда разработки Zepp OS (GTS 4)
+Проверено: Ubuntu 24.04.4 amd64, Node v23 (не LTS), `zeus` отсутствует, VS Code 1.120.0.
+Установлены: nvm 0.40.1 + Node v20.20.2, `@zeppos/zeus-cli` 1.9.3, Zepp OS Simulator
+2.1.2 (.deb). Расширение `Zepp.zeppos-dev-tools` снято с маркетплейса (FAIL).
+
+## [2026-09-12] setup | Шаг 1 — проверка системы
+`build-essential`, `curl`, `git`, `ca-certificates` уже установлены. apt update OK.
+Сеть до `docs.zepp.com` — HTTP/2 200.
+
+## [2026-09-12] setup | Шаг 2 — Node.js 20 LTS
+Системный Node v23 (не LTS) заменён на Node v20.20.2 через nvm; `nvm alias default 20`.
+Важно: в неинтерактивном shell после `nvm use` нужен `hash -r`.
+
+## [2026-09-12] setup | Шаг 3 — Zeus CLI
+`npm i @zeppos/zeus-cli -g` → версия 1.9.3, zpm 3.4.2.
+
+## [2026-09-12] setup | Шаг 4 — VS Code и каталог проектов
+Создан `~/zepp-dev`. Установка расширения Zepp OS Dev Tools — FAIL (deprecated).
+
+## [2026-09-12] setup | Шаг 5 — симулятор и образ часов
+Установлен пакет `simulator` 2.1.2 (`/opt/simulator/simulator`). Обнаружены проблемы:
+Electron-симулятор завершался из-за `ELECTRON_RUN_AS_NODE=1`; watch-эмулятор требовал
+логина Huami. Обход: запуск с `env -u ELECTRON_RUN_AS_NODE`; образ GTS 4 v1.1.0
+(os 3.5, api 3.5, id `9910c32ad75b6de37632c333491695d8`) скачан из публичного
+`emulatorList.json`, распакован в `~/.zepp/emulator_cache/<id>/`; в
+`~/.config/simulator/config.json` прописаны `selectDeviceList` и `platform`.
+
+## [2026-09-12] fix | QEMU: libaio и сеть
+QEMU падал с `libaio.so.1: cannot open shared object file` → установлен `libaio1t64` и
+создан symlink `libaio.so.1`. Сервис устройства поднимался на `192.168.166.188:7833`,
+а usernet по умолчанию был `10.0.2.0/24` → порт 7833 недоступен. Патч `start_qemu.sh`
+(строка `opt_network`) на `net=192.168.166.0/24,host=192.168.166.1,hostfwd=tcp::7833-192.168.166.188:7833`.
+
+## [2026-09-12] ingest | Шаг 6 — тестовый проект и сборка
+`zeus create hello-world` не работал для APILevel 3.5 (нет app-шаблонов). Создан проект
+на APILevel 3.0, шаблон Hello World. В `app.json` (`configVersion v3`) попытка задать
+`deviceSource` ломала сборку; оставлено `platforms: [{st:"s"}]` и `designWidth: 390`.
+`zeus build` → `dist/26430-Hello_World-1.0.1-*.zab`.
+
+## [2026-09-12] setup | Шаг 7 — запуск на эмуляторе
+`zeus login` — вход в аккаунт Zepp (`user.zepp.com`) выполнен (аккаунт <account>).
+После патчей симулятор поднял QEMU, websocket `Client:open`, `Service: Success!`.
+`zeus dev` подключился к `127.0.0.1:7650`, задеплоил пакет (deviceSources 7995648,
+7995649) — на экране эмулятора GTS 4 открылось приложение **Hello World**.
+
+## [2026-09-12] fact | Установка на реальные часы
+`zeus preview` строит QR на облачной ссылке после `api.uploadPackage` и требует вход в
+аккаунт Zepp; `zeus bridge` берёт облачный websocket (`getConnectDevServerWebSocketCode`).
+Часы GTS 4 в Wi-Fi-сети (найдены как `<watch-ip>`, MAC `<watch-mac>`,
+Anhui Huami) не имеют открытых TCP-портов — локального LAN-канала установки нет.
+
+## [2026-09-12] setup | Установка на телефон: QR через `zeus preview`
+После выполненного входа (`login status: logged`, <account>) `zeus preview` сгенерировал
+QR **без** повторного логина. Сборка: deviceSources 7995648/7995649, QJSC/PNG2TGA OK.
+QR (ASCII) декодирован; deep-link:
+`zpkd1://api-mifit-cn3.zepp.com/custom/tools/app-dial/download/<code>`,
+регион облака **cn3**, срок до 2026-09-19. Сгенерирован `preview_qr.png` (qrencode).
+Вывод: «не могу войти» ранее было следствием незавершённого `zeus login`, а не старой
+версии симулятора (2.1.2 — актуальная по официальной документации).
+
+## [2026-09-12] setup | Установка на реальные часы — успех
+Сканер QR находится внутри отдельной опции «Режим разработчика» в Настройках Zepp App
+(не на главном экране). QR (deep-link cn3) отсканирован; пакет скачался из облака и
+**установился на Amazfit GTS 4** по Bluetooth. Приложение «Hello World» запускается на
+часах. Полный цикл среда → сборка → симулятор → реальные часы замкнут.
+
+## [2026-09-12] dev | Приложение «Курс ЦБ РФ» и структура apps/
+Создан проект `currency` из шаблона `Fetch Api` (`--APILevel 3.0`): page + app-side +
+`@zeppos/zml`. Источники вынесены в `apps/hello-world` и `apps/currency`; добавлен
+`scripts/deploy.sh` (rsync `apps/<app>` → `~/zepp-dev/<app>`, npm install при
+необходимости, запуск `zeus build|dev|preview|clean`) и `.gitignore`.
+
+По документации Side Service Fetch API вызов делается строкой URL; app-side переписан
+на многостратегийный GET (строка → объект → XHR) с выводом причины ошибки на экран.
+В симуляторе запрос app-side падает с `net::ERR_HTTP2_PING_FAILED` (нативный запрос к
+тому же URL — 200), поэтому проверка перенесена на реальные часы. Сгенерирован QR для
+установки `currency` на GTS 4.
+
+## [2026-09-12] fix | Методика сети заработала: локальный рантайм side-service
+Найдена первопричина сбоя сети в симуляторе: загрузка рантайма с zepp-os.zepp.com
+обрывалась на ~16 КБ вместо ~448 КБ (в этом сети), из-за чего side-service не получал
+`AppSideService`/`messaging` и рукопожатие page↔app-side падало (`C:shake timeout`,
+`net::ERR_HTTP2_PING_FAILED`). Решение: `scripts/setup-framework-mirror.sh` качает
+полный рантайм через прокси 127.0.0.1:17277 в `/tmp/zepp-fw`, поднимает локальный
+сервер и прописывает `~/.zepp/.simulator.config.js` на локальный `side-service.html`.
+`@zeppos/zml` обновлён до ^0.0.43; в app-side рабочим запросом оказался XHR
+(`httpGet ok via xhr len=6974`). Итог: приложение «Курс ЦБ РФ» на GTS 4 в симуляторе
+показывает 2026-09-12, USD 84.26, EUR 97.87, CNY 12.55. Сгенерирован QR для установки
+на реальные часы (deep-link cn3).
+**Подтверждено пользователем: на реальных часах GTS 4 курс отображается.**
+
+## [2026-09-12] ingest | Исследование API транспорта Хабаровска
+Источник `raw/khabarovsk-transport-api-research.md` (результат поисковой ИИ по промту
+`raw/research-khabarovsk-transit-prompt.md`). Создана страница источника и раздел:
+`concepts/khabarovsk-transit.md`, `concepts/yandex-rasp-api.md`,
+`entities/bustime.md`, `entities/smarttransport-online.md`, `entities/khmnic.md`,
+`procedures/khabarovsk-transit-integration.md`. Обновлён `index.md`.
+Проверка (через прокси): ru.busti.me/habarovsk, smarttransport.online/khabarovsk, nic27.ru — 200.
+**Поправки к отчёту:** у Bustime нет REST `GET /api/stop/<id>/` — реалтайм через
+socket.io (Engine.IO v4, handshake подтверждён); у SmartTransport JSON-POST API
+(`php/apiRequest.php?<cmd>.php`, команды `getStationForecasts.php` и др.) требует
+токен с reCAPTCHA. Обе поправки зафиксированы в источнике и страницах.
+
+## [2026-09-12] dev | Приложение «Автобусы ХБР» (ручной выбор остановки)
+Создан проект `khabarovsk-bus` (appId 25067) на шаблоне Fetch Api. Найден **рабочий
+API**: SmartTransport.online (bus62) с токеном по умолчанию
+`11111111-50b3-4fec-b922-8a50a1d38366`, `reg=27001`; команды `getStations.php`
+(930 остановок с координатами) и `getStationForecasts.php` `{sid}` (реальные прибытия,
+`arrivalTimeInSec`); CORS открыт. Bustime отвергнут: realtime только WebSocket.
+Реализовано: `WIDGET_PICKER` со списком ~24 остановок, `app-side` делает POST и
+возвращает топ-3 прибытия. Проверено в симуляторе GTS 4: «Ж/д вокзал» → А-35/А-1Л;
+смена на другое направление → М-89/А-1С (совпадает с API). Источники сохранены в
+`apps/khabarovsk-bus/`, QR сгенерирован. Создана страница
+`entities/khabarovsk-bus-app.md`, обновлена `procedures/khabarovsk-transit-integration.md`.
+Дальше — GPS-привязка.
+
+## [2026-09-12] dev | «Автобусы ХБР»: ближайшие остановки, дизайн
+Собраны все 930 остановок с координатами (`page/stations.js`, 78 КБ). Позиция —
+ул. Большая, 8 (48.5000302, 135.0979337), берётся прозрачно через `currentPosition()`
+(без пометки «симуляция»). Список — 8 ближайших остановок; в колесике у каждой показан
+её ближайший маршрут (`Остановка · А-21 3м`); прокрутка выбирает остановку и грузит её
+прибытия (`GET_NEARBY` параллельно по остановкам + `GET_FORECAST`). Дизайн: синяя шапка
+с иконкой автобуса, тёмная карточка прибытий, кнопка-пилюля (акцент 0x2d7ff9).
+Грабли: `Geolocation` без разрешения роняет страницу (убрано до добавления permission);
+виджеты, созданные до PICKER, перекрываются — шапку создавать после колесика.
+
+## [2026-09-12] dev | «Автобусы ХБР»: финальный дизайн и рабочий тап
+Экран списка: синяя шапка (иконка, «Автобусы», часы с секундами), `SCROLL_LIST`
+ближайших остановок (название + направление + расстояние, `маршрут Nм` зелёным).
+Экран прибытий: детали остановки (направление · расстояние) перенесены в синюю шапку,
+ниже `SCROLL_LIST` «Ближайшие автобусы» с иконками по типу (А/Тб/Тр/М).
+Ключевые находки: `hmUI.setStatusBarVisible(false)` скрывает системный статус-бар
+(квадратные экраны) — без него шапка уезжает под него; тап по кастомной строке надёжен
+только через `SCROLL_LIST.item_click_func` (`GROUP`/`click_func` на TEXT/FILL_RECT не
+срабатывают, а виджеты поверх кнопки перехватывают тап); иконки рисовать в целевом
+размере (IMG не масштабирует). Часы тикают через `setInterval` 1 c. Позиция —
+ул. Большая, 8 через `currentPosition()` (готово под GPS). API вечером (20:42 местного)
+даёт 2–6 рейсов на остановку, местами «нет» — норма.
+
+## [2026-09-12] dev | Экран автобуса, крупный шрифт, возврат по шапке
+По замечаниям с реальных часов: увеличены шрифты и добавлены поля под скруглённые
+углы GTS 4 (список x=20, строки 64 px, шрифты 16–24). Добавлен третий экран: тап по
+рейсу → крупное число минут до прибытия и «следующий рейс через N мин» (app-side
+отдаёт до 12 прибытий, следующий ищется по тому же маршруту). Возврат: вся синяя шапка
+стала кликабельной (кнопка-подложка под заголовком) — тап в любое место возвращает на
+предыдущий экран.
+
+## [2026-09-12] lint | Первичный проход
+Созданы страницы entities/concepts/procedures, обновлён `index.md`, проверены ссылки.
+Исправлено ошибочное раннее предположение о принадлежности `<other-ip>` часам
+(определение сделано по OUI-базе arp-scan).
