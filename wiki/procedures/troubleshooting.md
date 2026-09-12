@@ -58,27 +58,34 @@ Chromium, ошибка JS); для установки образа вход не
 
 ## `C:shake timeout` / side-service не привязывается (в т.ч. на Bip 6)
 
-**Причина:** side-service в симуляторе «залипает» после нескольких пересборок,
-перезапусков или смены активной модели; в CDP накапливаются окна `app-side-service`
-(запрос уходит «не в то» окно). Симптомы в консоли side-service:
-`sideService launch error <appId>`, `worker.service.localStorage ... timeout`,
-`shake error not launch success`.
-**Решение (полный «чистый» перезапуск):**
+**Причина №1 (проверено): неверный рабочий каталог симулятора.** Симулятор
+нужно запускать с cwd `/opt/simulator`. Если запустить из другого каталога
+(например, из корня проекта), QEMU поднимается и `7833` отдаёт `200`, но
+устройство так и не получает `shake success` — в `/opt/simulator/sim-debug.log`
+только `shake send`. Отсюда `C:shake timeout`. Запускать через
+`scripts/run-simulator.sh`. Проверка:
+`grep -a "shake success" /opt/simulator/sim-debug.log | tail -1`.
+
+**Причина №2:** зеркало рантайма side-service не поднято/неполное
+(`net::ERR_HTTP2_PING_FAILED`, обрыв загрузки) — см. `app-development.md`.
+
+**Причина №3:** side-service «залипает» после серии пересборок/перезапусков или
+смены активной модели; накапливаются окна `app-side-service`. Симптомы:
+`sideService launch error <appId>`, `worker.service.localStorage ... timeout`.
+Решение — полный чистый перезапуск:
 ```
-# 1. остановить симулятор и осиротевший QEMU
 pkill -9 -x qemu-system-arm
-# 2. удалить установленные пакеты и кэш
+pkill -9 -x simulator
 rm -rf ~/.config/simulator/apps/* \
        ~/.config/simulator/'Code Cache' ~/.config/simulator/Cache \
        ~/.config/simulator/GPUCache ~/.config/simulator/Singleton*
-# 3. запустить симулятор, нажать Emulator, задеплоить ОДИН раз
+scripts/run-simulator.sh   # затем Emulator и ОДИН деплой
 ```
-Учесть: привязка side-service занимает **до ~70–120 с** после деплоя; до этого на часах
-висит `C:shake timeout`, а в списке — `…`. Не перезапускать деплой в это время.
-Проверка `curl 127.0.0.1:7833` → `200` подтверждает только транспорт, не привязку.
+Дать привязке до ~70–120 с после деплоя, не перезапускать деплой в это время.
+`curl 127.0.0.1:7833` → `200` подтверждает только транспорт, не привязку.
 
 Замечание: смена модели в `config.json` (`platform`) без чистого перезапуска тоже
-приводит к этому состоянию. После чистого прогона **обе** модели работают.
+приводит к этому состоянию.
 
 ## `нет` вместо маршрута в «Автобусах ХБР»
 

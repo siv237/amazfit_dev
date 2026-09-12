@@ -200,3 +200,12 @@ deviceSources 9765120/9765121/10158337). Обновлён `entities/khabarovsk-b
 - Bip 6, «Автобусы ХБР» → `GET_NEARBY` отрабатывает, статус `обновлено N с назад`,
   в строках `нет` (API вернул 0 прибытий — 22:46, рейсов нет; проверено по 20 остановкам).
 Интернет на Bip 6 работает. Обновлён `procedures/troubleshooting.md`.
+
+## [2026-09-12] lint | Найдена причина `C:shake timeout` на GTS 4 — cwd симулятора
+Симптом: QEMU поднят, `7833` → `200`, но приложение показывает `C:shake timeout`.
+Причина: симулятор запускался с рабочим каталогом проекта, а не `/opt/simulator`.
+В `sim-debug.log` при этом только `shake send`; при запуске из `/opt/simulator`
+появляется `shake success appSidePort=> 1001`, и сеть в app-side работает.
+Добавлен `scripts/run-simulator.sh` (поднимает зеркало и запускает из
+`/opt/simulator`), обновлены `procedures/simulator-dev.md` и `troubleshooting.md`.
+Проверено: «Курс ЦБ РФ» на GTS 4 снова показывает USD 84.26 / EUR 97.87 / CNY 12.55.

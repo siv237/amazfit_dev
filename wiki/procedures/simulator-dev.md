@@ -93,11 +93,33 @@ fi
 
 ## 5. Запустить симулятор
 
+**КРИТИЧНО:** симулятор обязан запускаться с рабочим каталогом `/opt/simulator`.
+Из любого другого cwd устройство не доходит до `shake success` — в
+`sim-debug.log` только `shake send`, и приложение падает с `C:shake timeout`,
+хотя QEMU и порт 7833 живы. Правильно:
+
 ```
+scripts/run-simulator.sh
+```
+
+Скрипт поднимает локальное зеркало рантайма (если не запущено) и запускает
+симулятор из `/opt/simulator`. Эквивалент вручную:
+
+```
+cd /opt/simulator
 env -u ELECTRON_RUN_AS_NODE -u NODE_OPTIONS /opt/simulator/simulator
 ```
 
 `ELECTRON_RUN_AS_NODE` (наследуется от VS Code) обязателен к снятию.
+
+Проверка, что side-service действительно поднялся (а не только QEMU):
+
+```
+grep -a "shake success" /opt/simulator/sim-debug.log | tail -1
+```
+
+Должна быть строка `shake success appSidePort=> 1001`. Если её нет — cwd неверный
+или зеркало рантайма не поднято (см. `app-development.md`).
 
 ## 6. Запустить часы-эмулятор
 

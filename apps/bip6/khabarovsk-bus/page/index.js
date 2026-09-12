@@ -20,6 +20,7 @@ const C = {
   text: 0xffffff,
   muted: 0x9aa0a6,
   green: 0x2ecc71,
+  red: 0xe53935,
   accent: 0x2d7ff9,
 };
 
@@ -64,6 +65,7 @@ let vehicleWidget = null;
 let vehicleKmWidget = null;
 let statusWidget = null;
 let lastOk = 0;
+let firstLoadAt = 0;
 let busA = null;
 let stops = [];
 let summaries = {};
@@ -142,6 +144,7 @@ Page(
         logger.log("status bar: " + e);
       }
       stops = nearestStations(DEFAULT_POS.lat, DEFAULT_POS.lng, NEAREST_N);
+      firstLoadAt = Date.now();
       this.renderList();
       this.loadNearby();
       clockTimer = setInterval(() => this.tick(), 1000);
@@ -204,13 +207,21 @@ Page(
     },
 
     statusColor(age) {
+      if (!lastOk) {
+        return Date.now() - firstLoadAt > 5000 ? C.red : C.muted;
+      }
       if (age > 120) return 0xe53935;
       if (age > 30) return 0xffb300;
       return C.muted;
     },
 
     statusText() {
-      const age = lastOk ? Math.round((Date.now() - lastOk) / 1000) : 0;
+      if (!lastOk) {
+        return Date.now() - firstLoadAt > 5000
+          ? "обновление не удалось"
+          : "загрузка…";
+      }
+      const age = Math.round((Date.now() - lastOk) / 1000);
       return `обновлено ${age} с назад`;
     },
 

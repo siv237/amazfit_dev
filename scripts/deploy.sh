@@ -8,6 +8,7 @@
 #
 # Env:
 #   ZEPP_WORKDIR  build workspace (default: ~/zepp-dev)
+#   ZEPP_TARGET   override zeus target device (default: mapped from <model>)
 #
 # Source of truth is ./apps/<model>/<app>. node_modules and dist are not synced;
 # node_modules is installed on demand in the workspace.
@@ -42,6 +43,15 @@ if [ ! -d "$SRC" ]; then
   fi
 fi
 NAME="$(basename "$SRC")"
+MODEL="$(basename "$(dirname "$SRC")")"
+
+# Target device passed to zeus (-t). Override with ZEPP_TARGET.
+case "$MODEL" in
+  gts4) DEFAULT_TARGET="Amazfit GTS 4" ;;
+  bip6) DEFAULT_TARGET="Amazfit Bip 6" ;;
+  *)    DEFAULT_TARGET="" ;;
+esac
+TARGET="${ZEPP_TARGET:-$DEFAULT_TARGET}"
 
 export NVM_DIR="$HOME/.nvm"
 if [ -s "$NVM_DIR/nvm.sh" ]; then
@@ -61,6 +71,7 @@ fi
 
 mkdir -p "$WORK_DIR"
 echo "[deploy] sync ${SRC#"$APPS_DIR/"} -> $DEST"
+[ -n "$TARGET" ] && echo "[deploy] target: $TARGET"
 rsync -a --delete \
   --exclude 'node_modules' \
   --exclude 'dist' \
@@ -72,9 +83,12 @@ if [ ! -d "$DEST/node_modules" ]; then
   ( cd "$DEST" && npm install )
 fi
 
+TARGET_FLAG=()
+[ -n "$TARGET" ] && TARGET_FLAG=(-t "$TARGET")
+
 case "$CMD" in
-  build)   ( cd "$DEST" && exec zeus build ) ;;
-  dev)     ( cd "$DEST" && exec zeus dev ) ;;
-  preview) ( cd "$DEST" && exec zeus preview ) ;;
+  build)   ( cd "$DEST" && exec zeus build "${TARGET_FLAG[@]}" ) ;;
+  dev)     ( cd "$DEST" && exec zeus dev "${TARGET_FLAG[@]}" ) ;;
+  preview) ( cd "$DEST" && exec zeus preview "${TARGET_FLAG[@]}" ) ;;
   *) usage ;;
 esac

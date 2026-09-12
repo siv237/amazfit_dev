@@ -1,8 +1,8 @@
 {
   "configVersion": "v3",
   "app": {
-    "appId": 25067,
-    "appName": "Автобусы ХБР",
+    "appId": 25068,
+    "appName": "Автобусы ХБР Bip6",
     "appType": "app",
     "version": {
       "code": 1,
