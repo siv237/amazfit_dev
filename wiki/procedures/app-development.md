@@ -10,14 +10,19 @@ sources: [raw/promt-agent-zeppos-gts4-ubuntu.md]
 
 ## Структура проекта
 
-Исходники приложений хранятся в репозитории вики:
+Исходники приложений хранятся в репозитории вики, **разделённые по моделям**
+(`apps/<model>/<app>/`):
 
 ```
 apps/
-  hello-world/     тестовое приложение (без сети)
-  currency/        курс валют ЦБ РФ (page + app-side + fetch)
+  gts4/                     Amazfit GTS 4 (Zepp OS 3.5)
+    hello-world/            тестовое приложение (без сети)
+    currency/               курс валют ЦБ РФ (page + app-side + fetch)
+    khabarovsk-bus/         «Автобусы ХБР» (транспорт Хабаровска)
+  bip6/                     Amazfit Bip 6 (Zepp OS 5.0)
+    khabarovsk-bus/         порт «Автобусов ХБР» (та же вёрстка, 390×450)
 scripts/
-  deploy.sh                     синхронизация apps/<app> → ~/zepp-dev/<app> и запуск zeus
+  deploy.sh                     синхронизация apps/<model>/<app> → ~/zepp-dev/<app> и zeus
   setup-framework-mirror.sh     локальное зеркало рантайма side-service для симулятора
 ```
 
@@ -26,15 +31,18 @@ scripts/
 ## Деплой
 
 ```
-scripts/deploy.sh currency build     # синхронизировать и собрать
-scripts/deploy.sh currency dev       # собрать и залить в симулятор (watch)
-scripts/deploy.sh currency preview   # QR для установки на реальные часы
-scripts/deploy.sh currency clean     # удалить рабочую копию
+scripts/deploy.sh gts4/currency build     # синхронизировать и собрать
+scripts/deploy.sh bip6/khabarovsk-bus dev # собрать и залить в симулятор (watch)
+scripts/deploy.sh gts4/currency preview   # QR для установки на реальные часы
+scripts/deploy.sh gts4/currency clean     # удалить рабочую копию
 ```
+
+Можно указывать и просто `<app>` (`deploy.sh currency build`), если имя уникально
+среди моделей. Рабочая копия — `~/zepp-dev/<app>` (basename, переопределяется
+`ZEPP_WORKDIR`).
 
 Скрипт использует `rsync` (исключая `node_modules`, `dist`), при необходимости
 выполняет `npm install`, переключается на Node 20 через nvm и запускает `zeus`.
-Рабочая копия — `~/zepp-dev/<app>` (переопределяется `ZEPP_WORKDIR`).
 
 ## Сеть в Zepp OS
 

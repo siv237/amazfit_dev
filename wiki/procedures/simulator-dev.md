@@ -76,15 +76,20 @@ PY
 
 ## 4. Патч QEMU-сети (обязательно)
 
-Прошивка поднимает WS-сервер на своём IP `192.168.166.188:7833`. Штатный
-`start_qemu.sh` использует usernet `10.0.2.0/24`, из-за чего порт 7833 недоступен.
-Правим строку `opt_network` в `/opt/simulator/resources/firmware/start_qemu.sh`:
+Прошивка поднимает WS-сервер на своём IP. GTS 4 использует `192.168.166.188:7833`,
+Bip 6 — `10.0.2.15:7833`. `start_qemu.sh` теперь **сам определяет** подсеть по
+содержимому `main.elf`:
 
 ```
-sudo sed -i \
- 's#opt_network="-nic user,id=usernet,hostfwd=tcp::7833-:7833,model=lan9118"#opt_network="-nic user,id=usernet,net=192.168.166.0/24,host=192.168.166.1,hostfwd=tcp::7833-192.168.166.188:7833,model=lan9118"#' \
- /opt/simulator/resources/firmware/start_qemu.sh
+if grep -aq "192.168.166.188" "$firmware"; then
+  opt_network="-nic user,id=usernet,net=192.168.166.0/24,host=192.168.166.1,hostfwd=tcp::7833-192.168.166.188:7833,model=lan9118"
+else
+  opt_network="-nic user,id=usernet,net=10.0.2.0/24,host=10.0.2.2,hostfwd=tcp::7833-10.0.2.15:7833,model=lan9118"
+fi
 ```
+
+Так попеременно работают и GTS 4, и Bip 6. Добавление новых моделей и ручной патч —
+в [add-device-simulator.md](add-device-simulator.md).
 
 ## 5. Запустить симулятор
 

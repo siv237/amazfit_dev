@@ -54,10 +54,20 @@ sources: [raw/khabarovsk-transport-api-research.md]
 - Позиция: `currentPosition()` — точка замены под GPS; сейчас резервные координаты
   ул. Большая, 8.
 
-- Исходники: `apps/khabarovsk-bus/`
+- Исходники: `apps/gts4/khabarovsk-bus/` (GTS 4) и `apps/bip6/khabarovsk-bus/` (Bip 6, порт)
 - appId: `25067`
 - Сборка: `dist/25067-Автобусы_ХБР-1.0.1-*.zab` (~377 КБ)
-- Скриншот: `apps/khabarovsk-bus/screenshot.png`, QR: `apps/khabarovsk-bus/preview_qr.png`
+- Скриншот: `apps/gts4/khabarovsk-bus/screenshot.png`, QR: `apps/gts4/khabarovsk-bus/preview_qr.png`
+
+## Порт на Bip 6
+
+2026-09-12 приложение перенесено на **Amazfit Bip 6** (Zepp OS 5.0, api 4.2). Экран
+Bip 6 совпадает с GTS 4 (квадрат 390×450, `rAngle` 86, `st:"s"`, `dw:390`), поэтому
+код не менялся — только копия в `apps/bip6/khabarovsk-bus/`. Проверено в симуляторе
+Bip 6: список ближайших остановок загружается, `обновлено 0 с назад` (side-service
+работает). Подробности добавления модели и сеть QEMU —
+[../procedures/add-device-simulator.md](../procedures/add-device-simulator.md),
+[../entities/amazfit-bip6.md](../entities/amazfit-bip6.md).
 
 ## Как работает
 

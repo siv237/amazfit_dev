@@ -168,3 +168,35 @@ API**: SmartTransport.online (bus62) с токеном по умолчанию
 Созданы страницы entities/concepts/procedures, обновлён `index.md`, проверены ссылки.
 Исправлено ошибочное раннее предположение о принадлежности `<other-ip>` часам
 (определение сделано по OUI-базе arp-scan).
+
+## [2026-09-12] setup | Модель Bip 6 добавлена в симулятор
+Скачан публичный образ Bip 6 v1.1.0 (os 5.0, api 4.2, id `4ae8ec66a7e2d342faf040652f4f41ff`,
+~152 МБ) в `~/.zepp/emulator_cache/`. В `~/.config/simulator/config.json` запись **дописана**
+к `selectDeviceList` (GTS 4 сохранён). Обнаружено: прошивка Bip 6 жёстко использует сеть
+QEMU `10.0.2.15` (GTS 4 — `192.168.166.188`), поэтому `start_qemu.sh` теперь сам выбирает
+usernet-подсеть по содержимому `main.elf`. Созданы `entities/amazfit-bip6.md` и
+`procedures/add-device-simulator.md`, обновлены `index.md`, `overview.md`, `simulator-dev.md`.
+
+## [2026-09-12] dev | apps/ разделён по моделям
+Структура `apps/<model>/<app>/`: существующие проекты перенесены в `apps/gts4/`
+(`hello-world`, `currency`, `khabarovsk-bus`), создан `apps/bip6/`. `scripts/deploy.sh`
+принимает `<model>/<app>` (или уникальный `<app>`), рабочая копия — `~/zepp-dev/<app>`.
+`.gitignore` обновлён под вложенность. Обновлены `procedures/app-development.md`,
+`overview.md`.
+
+## [2026-09-12] dev | «Автобусы ХБР» портированы на Bip 6
+Копия `apps/bip6/khabarovsk-bus/` (код без изменений — экран совпадает: квадрат 390×450,
+`rAngle` 86, `st:"s"`, `dw:390`). В симуляторе Bip 6 приложение задеплоено (`zeus dev`,
+deviceSources 9765120/9765121/10158337). Обновлён `entities/khabarovsk-bus-app.md`.
+
+## [2026-09-12] lint | Фикс «залипшего» side-service (shake timeout)
+В ходе порта на Bip 6 обе модели начали показывать `C:shake timeout`
+(`sideService launch error`, таймауты `worker.service.localStorage`). Это состояние
+«залипания» side-service после множества перезапусков/смены `platform`, а не поломка
+модели. Решение — полный чистый перезапуск (удалить `~/.config/simulator/apps/*` и
+кэши, запустить симулятор заново, задеплоить ОДИН раз, подождать ~70–120 с привязки).
+После чистого прогона проверено:
+- GTS 4, «Курс ЦБ РФ» → `USD 84.26 / EUR 97.87 / CNY 12.55`;
+- Bip 6, «Автобусы ХБР» → `GET_NEARBY` отрабатывает, статус `обновлено N с назад`,
+  в строках `нет` (API вернул 0 прибытий — 22:46, рейсов нет; проверено по 20 остановкам).
+Интернет на Bip 6 работает. Обновлён `procedures/troubleshooting.md`.

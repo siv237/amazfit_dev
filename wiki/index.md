@@ -17,6 +17,7 @@
 ## Entities (объекты)
 
 - [entities/amazfit-gts4.md](entities/amazfit-gts4.md) — устройство, параметры, deviceSource
+- [entities/amazfit-bip6.md](entities/amazfit-bip6.md) — второе устройство (Zepp OS 5.0), параметры
 - [entities/zeus-cli.md](entities/zeus-cli.md) — CLI-инструмент разработки
 - [entities/zepp-os-simulator.md](entities/zepp-os-simulator.md) — симулятор и QEMU-образ
 - [entities/nodejs.md](entities/nodejs.md) — Node.js / nvm
@@ -39,6 +40,7 @@
 ## Procedures (процедуры)
 
 - [procedures/setup-ubuntu.md](procedures/setup-ubuntu.md) — установка среды (шаги 1–5)
+- [procedures/add-device-simulator.md](procedures/add-device-simulator.md) — добавление модели (Bip 6) в симулятор
 - [procedures/create-build.md](procedures/create-build.md) — создание и сборка проекта
 - [procedures/simulator-dev.md](procedures/simulator-dev.md) — запуск эмулятора и `zeus dev`
 - [procedures/app-development.md](procedures/app-development.md) — приложения в `apps/`, скрипт деплоя, сеть

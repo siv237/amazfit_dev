@@ -20,6 +20,7 @@ Zepp + Bluetooth (Wi-Fi часов для этого не используетс
 | Расширение Zepp OS Dev Tools | — | FAIL | снято с маркетплейса (deprecated) |
 | Zepp OS Simulator | 2.1.2 (`/opt/simulator/simulator`) | OK | GUI + QEMU-образ часов |
 | Образ часов GTS 4 | v1.1.0, os 3.5, api 3.5 | OK | скачан из публичного CDN, без логина |
+| Образ часов Bip 6 | v1.1.0, os 5.0, api 4.2 | OK | добавлен в симулятор рядом с GTS 4 |
 | `libaio.so.1` для QEMU | symlink → `libaio.so.1t64` | OK | иначе QEMU не стартует |
 | QEMU usernet | `net=192.168.166.0/24` | OK | обязательный патч `start_qemu.sh` |
 | Тестовый проект | `~/zepp-dev/hello-world` (appId 26430) | OK | создан `zeus create` |
@@ -42,10 +43,10 @@ Zepp + Bluetooth (Wi-Fi часов для этого не используетс
    `https://upload-cdn.huami.com/zeppos/simulator/download/emulatorList.json`. Архив GTS 4
    кладётся в `~/.zepp/emulator_cache/<emulator-id>/` (`main.elf` + `norflash.bin`), запись
    добавляется в `~/.config/simulator/config.json` (`selectDeviceList`, `platform`).
-3. **QEMU обязан работать в подсети `192.168.166.0/24`.** Прошивка поднимает WS-сервер на
-   своём IP `192.168.166.188:7833`, а `start_qemu.sh` по умолчанию использует usernet
-   `10.0.2.0/24` — тогда порт 7833 недоступен и приложение не запускается. Патч:
-   `-nic user,id=usernet,net=192.168.166.0/24,host=192.168.166.1,hostfwd=tcp::7833-192.168.166.188:7833,model=lan9118`.
+3. **QEMU-подсеть зависит от прошивки.** GTS 4 поднимает WS-сервер на своём IP
+   `192.168.166.188:7833`, Bip 6 — на `10.0.2.15:7833`, а `start_qemu.sh` исторически
+   использовал usernet `10.0.2.0/24`. Теперь скрипт сам выбирает подсеть по содержимому
+   `main.elf` (см. [procedures/add-device-simulator.md](procedures/add-device-simulator.md)).
 4. **QEMU нужен `libaio.so.1`.** В 24.04 пакет называется `libaio1t64`; нужен symlink
    `libaio.so.1 → libaio.so.1t64`.
 5. **APILevel 3.5 не имеет app-шаблонов** — `zeus create` падает; используем 3.0.
@@ -56,15 +57,17 @@ Zepp + Bluetooth (Wi-Fi часов для этого не используетс
 
 ## Приложения в проекте
 
-Исходники приложений лежат в `apps/` (в репозитории вики), деплой и сборка —
-через `scripts/deploy.sh <app> [build|dev|preview|clean]`:
+Исходники приложений лежат в `apps/`, **разделённые по моделям** (`apps/<model>/<app>/`),
+деплой и сборка — через `scripts/deploy.sh <model>/<app> [build|dev|preview|clean]`:
 
-- `apps/hello-world` — тестовое приложение (без сети), запускалось на эмуляторе и часах.
-- `apps/currency` — «Курс ЦБ РФ» (page + app-side + HTTP). Работает и в симуляторе, и
+- `apps/gts4/hello-world` — тестовое приложение (без сети), запускалось на эмуляторе и часах.
+- `apps/gts4/currency` — «Курс ЦБ РФ» (page + app-side + HTTP). Работает и в симуляторе, и
   **на реальных часах GTS 4**: показывает `USD 84.26 / EUR 97.87 / CNY 12.55` из API ЦБ.
-- `apps/khabarovsk-bus` — «Автобусы ХБР»: прибытие транспорта на остановках Хабаровска,
+- `apps/gts4/khabarovsk-bus` — «Автобусы ХБР»: прибытие транспорта на остановках Хабаровска,
   ручной выбор остановки колесиком. Работает на реальном API SmartTransport (bus62),
   проверено в симуляторе. См. [entities/khabarovsk-bus-app.md](entities/khabarovsk-bus-app.md).
+- `apps/bip6/khabarovsk-bus` — порт «Автобусов ХБР» на **Amazfit Bip 6** (Zepp OS 5.0);
+  вёрстка та же (экран 390×450), проверено в симуляторе Bip 6.
 
 Методика работы с сетью (app-side + `@zeppos/zml`, Fetch API, обязательное локальное
 зеркало рантайма side-service для симулятора) описана в

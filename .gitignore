@@ -1,5 +1,6 @@
 # Zepp OS app build artifacts and deps (kept out of the repo)
-apps/*/node_modules/
-apps/*/dist/
-apps/*/.zeus/
+apps/*/*/node_modules/
+apps/*/*/dist/
+apps/*/*/.zeus/
 *.zab
+sim-debug.log
