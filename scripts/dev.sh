@@ -5,15 +5,15 @@
 # Interactive:
 #   scripts/dev.sh
 #
-# Non-interactive (no console needed):
-#   scripts/dev.sh -p gts4 -a khabarovsk-bus
-#   scripts/dev.sh --platform bip6 --app khabarovsk-bus --no-watch
+# Non-interactive:
+#   scripts/dev.sh -p gts4 -a khabarovsk-bus      # install and return
+#   scripts/dev.sh -p bip6 -a khabarovsk-bus --watch
 #
 # Flags:
 #   -p, --platform  gts4 | bip6 (or "GTS 4" / "Bip 6")
 #   -a, --app       app folder name under apps/<platform>/
-#       --no-watch  install and return (do not block on zeus dev watch)
-#       --gps "LAT,LNG"          mock a fixed position
+#       --watch     keep zeus dev watching (default: install and return)
+#       --gps "LAT,LNG"          mock a fixed position (optional)
 #       --gps-track "LAT,LNG LAT,LNG ..."  mock a route (interpolated)
 #       --gps-random [N]         N random waypoints inside --gps-bbox
 #       --gps-bbox "la0,lo0,la1,lo1"       default: Khabarovsk
@@ -21,9 +21,8 @@
 #       --gps-seconds N          log length, 1 Hz (default 3600)
 #   -h, --help
 #
-# GPS is injected into the selected device's norflash.bin (fake_data_gps.dat);
-# the app keeps using the normal Geolocation API and is unaware of the mock.
-# Default when no --gps* is given: Khabarovsk center.
+# GPS is injected into the selected device's norflash.bin (fake_data_gps.dat)
+# only when a --gps* flag is given.
 #
 # Everything lives in the repo (vendor/ + scripts/); device images are
 # downloaded on demand into ~/.zepp/emulator_cache.
@@ -35,7 +34,7 @@ cd "$ROOT"
 
 PLATFORM_ARG=""
 APP_ARG=""
-WATCH=1
+WATCH=0
 GPS_KIND=""
 GPS_LAT=""
 GPS_LNG=""
@@ -44,7 +43,7 @@ GPS_SPEED=""
 GPS_SECONDS=""
 
 usage() {
-  sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-1}"
 }
 
@@ -53,6 +52,7 @@ while [ $# -gt 0 ]; do
     -p|--platform) PLATFORM_ARG="${2:-}"; shift 2 ;;
     -a|--app)      APP_ARG="${2:-}"; shift 2 ;;
     --no-watch)    WATCH=0; shift ;;
+    --watch)       WATCH=1; shift ;;
     --gps)         GPS_KIND=static; GPS_LAT="${2%%,*}"; GPS_LNG="${2#*,}"; shift 2 ;;
     --gps-track)   GPS_KIND=track; GPS_VALUE="${2:-}"; shift 2 ;;
     --gps-random)  GPS_KIND=random
@@ -118,20 +118,21 @@ pkill -9 -x qemu-system-arm 2>/dev/null || true
 pkill -9 -x simulator 2>/dev/null || true
 sleep 2
 
-# --- 3b. Inject mocked GPS (device image must be idle) -----------------------
-for _ in $(seq 1 15); do pgrep -x qemu-system-arm >/dev/null || break; sleep 1; done
-GPS_ARGS=(--model "$MODEL")
-case "$GPS_KIND" in
-  static) GPS_ARGS+=(--lat "$GPS_LAT" --lng "$GPS_LNG") ;;
-  track)  GPS_ARGS+=(--track "$GPS_VALUE") ;;
-  random) GPS_ARGS+=(--random "$GPS_VALUE" --bbox "$GPS_BBOX") ;;
-  *)      GPS_ARGS+=(--lat 48.5000302 --lng 135.0979337) ;;
-esac
-[ -n "$GPS_SPEED" ] && GPS_ARGS+=(--speed-kmh "$GPS_SPEED")
-[ -n "$GPS_SECONDS" ] && GPS_ARGS+=(--seconds "$GPS_SECONDS")
-echo "[dev] GPS: ${GPS_KIND:-static(default)} ${GPS_VALUE:-${GPS_LAT:+$GPS_LAT,$GPS_LNG}}"
-timeout 120 python3 -u "$ROOT/scripts/set_gps.py" "${GPS_ARGS[@]}" \
-  || echo "[dev] ВНИМАНИЕ: GPS не применён (продолжаю без него)"
+# --- 3b. Inject mocked GPS (only when --gps* is given; image must be idle) ---
+if [ -n "$GPS_KIND" ]; then
+  for _ in $(seq 1 15); do pgrep -x qemu-system-arm >/dev/null || break; sleep 1; done
+  GPS_ARGS=(--model "$MODEL")
+  case "$GPS_KIND" in
+    static) GPS_ARGS+=(--lat "$GPS_LAT" --lng "$GPS_LNG") ;;
+    track)  GPS_ARGS+=(--track "$GPS_VALUE") ;;
+    random) GPS_ARGS+=(--random "$GPS_VALUE" --bbox "$GPS_BBOX") ;;
+  esac
+  [ -n "$GPS_SPEED" ] && GPS_ARGS+=(--speed-kmh "$GPS_SPEED")
+  [ -n "$GPS_SECONDS" ] && GPS_ARGS+=(--seconds "$GPS_SECONDS")
+  echo "[dev] GPS: $GPS_KIND ${GPS_VALUE:-${GPS_LAT:+$GPS_LAT,$GPS_LNG}}"
+  timeout 120 python3 -u "$ROOT/scripts/set_gps.py" "${GPS_ARGS[@]}" \
+    || echo "[dev] ВНИМАНИЕ: GPS не применён (продолжаю без него)"
+fi
 
 LOG="${TMPDIR:-/tmp}/zepp-sim.log"
 echo "[dev] запускаю симулятор (лог: $LOG)"

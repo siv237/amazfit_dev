@@ -38,6 +38,13 @@ GSV = [
 ]
 
 
+def run_mtools(args, check=False):
+    """Run mtools non-interactively (never block on a TTY prompt)."""
+    env = dict(os.environ, MTOOLS_SKIP_CHECK="1", MTOOLS_EJECT="1")
+    return subprocess.run(args, check=check, capture_output=True,
+                          stdin=subprocess.DEVNULL, env=env)
+
+
 def checksum(body):
     x = 0
     for ch in body:
@@ -80,9 +87,8 @@ def read_header(img):
     tmp = tempfile.NamedTemporaryFile(delete=False)
     tmp.close()
     try:
-        subprocess.run(["mcopy", "-o", "-i", img,
-                        "::/virtual_sensor_data/fake_data_gps.dat", tmp.name],
-                       check=True, capture_output=True)
+        run_mtools(["mcopy", "-o", "-i", img,
+                        "::/virtual_sensor_data/fake_data_gps.dat", tmp.name], check=True)
         header = []
         with open(tmp.name, "r", encoding="utf-8", errors="replace") as f:
             for line in f:
@@ -154,14 +160,12 @@ def resolve_img(model):
 def inject(img, data_path):
     if not shutil.which("mcopy"):
         sys.exit("[gps] mtools not installed: sudo apt-get install -y mtools")
-    subprocess.run(["mdir", "-i", img, "::/virtual_sensor_data"], check=True,
-                   capture_output=True)
-    subprocess.run(["mdel", "-i", img, "::/virtual_sensor_data/fake_data_gps.dat"],
-                   check=True, capture_output=True)
-    subprocess.run(["mcopy", "-o", "-i", img, data_path,
-                    "::/virtual_sensor_data/fake_data_gps.dat"], check=True)
-    out = subprocess.run(["mdir", "-i", img, "::/virtual_sensor_data/fake_data_gps.dat"],
-                         capture_output=True, text=True).stdout
+    run_mtools(["mdir", "-i", img, "::/virtual_sensor_data"], check=True)
+    run_mtools(["mdel", "-i", img, "::/virtual_sensor_data/fake_data_gps.dat"])
+    run_mtools(["mcopy", "-o", "-i", img, data_path,
+                "::/virtual_sensor_data/fake_data_gps.dat"], check=True)
+    out = run_mtools(["mdir", "-i", img,
+                      "::/virtual_sensor_data/fake_data_gps.dat"]).stdout.decode("utf-8", "replace")
     print("[gps] injected;", out.strip().splitlines()[-2].strip() if out else "")
 
 
