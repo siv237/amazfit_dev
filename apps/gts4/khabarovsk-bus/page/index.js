@@ -64,7 +64,6 @@ let busNumberWidget = null;
 let vehicleWidget = null;
 let vehicleKmWidget = null;
 let statusWidget = null;
-let gpsWidget = null;
 let gnssStatus = "";
 let gnssInArea = false;
 let providerAt = 0;
@@ -266,10 +265,7 @@ Page(
         statusWidget.setProperty(hmUI.prop.TEXT, this.statusText());
         statusWidget.setProperty(hmUI.prop.COLOR, this.statusColor(age));
       }
-      if (gpsWidget) {
-        gpsWidget.setProperty(hmUI.prop.TEXT, "GPS");
-        gpsWidget.setProperty(hmUI.prop.COLOR, this.gpsColor());
-      }
+
       if (mode === "bus") {
         if (busNumberWidget && busA) {
           busNumberWidget.setProperty(hmUI.prop.TEXT, String(mins(busA.sec, arrivalsAt)));
@@ -300,43 +296,37 @@ Page(
       vehicleWidget = null;
       vehicleKmWidget = null;
       statusWidget = null;
-      gpsWidget = null;
     },
 
     statusColor(age) {
+      if (!this.gpsSignal()) return C.red;
       if (!lastOk) {
         return Date.now() - firstLoadAt > 5000 ? C.red : C.muted;
       }
       if (age > 120) return 0xe53935;
       if (age > 30) return 0xffb300;
-      return C.muted;
+      return C.green;
     },
 
     statusText() {
+      const gps = "GPS";
       if (!lastOk) {
-        return Date.now() - firstLoadAt > 5000
+        const fetch = Date.now() - firstLoadAt > 5000
           ? "обновление не удалось"
           : "загрузка…";
+        return gps + " · " + fetch;
       }
       const age = Math.round((Date.now() - lastOk) / 1000);
-      return `обновлено ${age} с назад`;
+      return gps + " · обновлено " + age + " с назад";
     },
 
     statusLine() {
       statusWidget = this.text(
-        34, 392, W - 130, 22, this.statusText(), 15, this.statusColor(
+        34, 392, W - 46, 22, this.statusText(), 15, this.statusColor(
           lastOk ? (Date.now() - lastOk) / 1000 : 0
         ),
         hmUI.align.LEFT
       );
-      gpsWidget = this.text(
-        W - 12 - 70, 392, 70, 22, "GPS", 15, this.gpsColor(),
-        hmUI.align.RIGHT
-      );
-    },
-
-    gpsColor() {
-      return this.gpsSignal() ? C.green : C.red;
     },
 
     gpsSignal() {
