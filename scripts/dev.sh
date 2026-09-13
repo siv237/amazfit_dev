@@ -135,7 +135,7 @@ if [ -n "$GPS_KIND" ]; then
     || echo "[dev] ВНИМАНИЕ: GPS не применён (продолжаю без него)"
 else
   python3 -u "$ROOT/scripts/set_gps.py" --provider-only \
-    --provider-out "$PROVIDER_OUT" --lat 48.5000302 --lng 135.0979337 >/dev/null
+    --provider-out "$PROVIDER_OUT" --lat 48.4827 --lng 135.0838 >/dev/null
   echo "[dev] GPS: центр Хабаровска (по умолчанию)"
 fi
 

@@ -10,7 +10,7 @@ const time = new Time();
 const W = 390;
 const BAND_H = 50;
 const NEAREST_N = 5;
-const DEFAULT_POS = { lat: 48.5000302, lng: 135.0979337 };
+const DEFAULT_POS = { lat: 48.4827, lng: 135.0838 };
 
 const C = {
   band: 0x1f6fe0,
