@@ -42,7 +42,8 @@ def run_mtools(args, check=False):
     """Run mtools non-interactively (never block on a TTY prompt)."""
     env = dict(os.environ, MTOOLS_SKIP_CHECK="1", MTOOLS_EJECT="1")
     return subprocess.run(args, check=check, capture_output=True,
-                          stdin=subprocess.DEVNULL, env=env)
+                          stdin=subprocess.DEVNULL, env=env,
+                          start_new_session=True)
 
 
 def checksum(body):
@@ -219,7 +220,9 @@ def main():
     else:
         sys.exit("[gps] provide --lat/--lng or --track")
 
+    print("[gps] reading header …", flush=True)
     header = read_header(img)
+    print("[gps] generating NMEA …", flush=True)
     lines = build_lines(pts, args.speed_kmh, args.seconds, args.date, args.start, header)
 
     if args.provider_out:
@@ -249,8 +252,9 @@ def main():
 
     bak = img + ".bak"
     if not os.path.exists(bak):
+        print(f"[gps] backup {bak}", flush=True)
         shutil.copyfile(img, bak)
-        print(f"[gps] backup {bak}")
+    print("[gps] injecting …", flush=True)
     inject(img, tmp)
     os.unlink(tmp)
 
