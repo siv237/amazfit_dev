@@ -119,6 +119,7 @@ pkill -9 -x simulator 2>/dev/null || true
 sleep 2
 
 # --- 3b. Inject mocked GPS (device image must be idle) -----------------------
+for _ in $(seq 1 15); do pgrep -x qemu-system-arm >/dev/null || break; sleep 1; done
 GPS_ARGS=(--model "$MODEL")
 case "$GPS_KIND" in
   static) GPS_ARGS+=(--lat "$GPS_LAT" --lng "$GPS_LNG") ;;
@@ -129,7 +130,8 @@ esac
 [ -n "$GPS_SPEED" ] && GPS_ARGS+=(--speed-kmh "$GPS_SPEED")
 [ -n "$GPS_SECONDS" ] && GPS_ARGS+=(--seconds "$GPS_SECONDS")
 echo "[dev] GPS: ${GPS_KIND:-static(default)} ${GPS_VALUE:-${GPS_LAT:+$GPS_LAT,$GPS_LNG}}"
-python3 "$ROOT/scripts/set_gps.py" "${GPS_ARGS[@]}" || echo "[dev] ВНИМАНИЕ: GPS не применён"
+timeout 120 python3 -u "$ROOT/scripts/set_gps.py" "${GPS_ARGS[@]}" \
+  || echo "[dev] ВНИМАНИЕ: GPS не применён (продолжаю без него)"
 
 LOG="${TMPDIR:-/tmp}/zepp-sim.log"
 echo "[dev] запускаю симулятор (лог: $LOG)"
