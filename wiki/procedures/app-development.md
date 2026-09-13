@@ -21,12 +21,41 @@ apps/
     khabarovsk-bus/         «Автобусы ХБР» (транспорт Хабаровска)
   bip6/                     Amazfit Bip 6 (Zepp OS 5.0)
     khabarovsk-bus/         порт «Автобусов ХБР» (та же вёрстка, 390×450)
+vendor/
+  zepp-fw/v4.0.0.4/         зеркало рантайма side-service (в репозитории!)
+  emulatorList.json         список устройств Zepp (кэш)
 scripts/
+  dev.sh                        интерактивный запуск: платформа → приложение
   deploy.sh                     синхронизация apps/<model>/<app> → ~/zepp-dev/<app> и zeus
-  setup-framework-mirror.sh     локальное зеркало рантайма side-service для симулятора
+  patch-simulator.sh            патч QEMU-сети (авто-подсеть GTS 4 / Bip 6)
+  run-simulator.sh              поднимает зеркало и запускает симулятор из /opt/simulator
+  setup-framework-mirror.sh     скачивание зеркала рантайма в vendor/ (через прокси)
+  sim_devices.py                скачивание/регистрация образов устройств
+  click_emulator.py             автонажатие кнопки Emulator (CDP)
 ```
 
 `node_modules/` и `dist/` в репозиторий не попадают (см. `.gitignore`).
+
+## Быстрый запуск (интерактивно)
+
+```
+scripts/dev.sh
+```
+
+Скрипт: применяет сетевой патч, спрашивает платформу (GTS 4 / Bip 6), скачивает и
+регистрирует образ (при первом запуске), поднимает зеркало рантайма из `vendor/`,
+запускает симулятор строго из `/opt/simulator`, нажимает **Emulator**, перечисляет
+приложения из `apps/<платформа>/` и деплоит выбранное.
+
+## Перенос на другой ПК
+
+Весь «проектный» обвязок лежит в репозитории: `vendor/` (зеркало рантайма и список
+устройств) и `scripts/`. На новой машине нужны только системные вещи — симулятор
+`/opt/simulator` (2.1.2), `libaio1t64`, Node 20 и `zeus-cli`. Образы часов
+(~150 МБ каждый) не хранятся в git — `scripts/dev.sh` (или
+`scripts/sim_devices.py ensure "<модель>" 1.1.0`) скачает их с публичного CDN и
+пропишет в `~/.config/simulator/config.json`. Генерируемые файлы
+(`~/.zepp/.simulator.config.js`, `~/.config/simulator/config.json`) создаются скриптами.
 
 ## Деплой
 
@@ -36,6 +65,9 @@ scripts/deploy.sh bip6/khabarovsk-bus dev # собрать и залить в с
 scripts/deploy.sh gts4/currency preview   # QR для установки на реальные часы
 scripts/deploy.sh gts4/currency clean     # удалить рабочую копию
 ```
+
+`deploy.sh` сам подставляет целевую модель в `zeus` через `-t` (`gts4` →
+`Amazfit GTS 4`, `bip6` → `Amazfit Bip 6`), можно переопределить `ZEPP_TARGET`.
 
 Можно указывать и просто `<app>` (`deploy.sh currency build`), если имя уникально
 среди моделей. Рабочая копия — `~/zepp-dev/<app>` (basename, переопределяется

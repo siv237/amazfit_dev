@@ -17,7 +17,7 @@
 #
 # Env:
 #   ZEPP_SIM_DIR     simulator install dir        (default: /opt/simulator)
-#   ZEPP_FW_MIRROR   mirror directory             (default: /tmp/zepp-fw)
+#   ZEPP_FW_MIRROR   mirror directory             (default: <repo>/vendor/zepp-fw)
 #   ZEPP_FW_PORT     mirror HTTP port             (default: 8099)
 #   ZEPP_FW_VERSION  framework version            (default: v4.0.0.4)
 
@@ -26,17 +26,20 @@ set -euo pipefail
 SIM_DIR="${ZEPP_SIM_DIR:-/opt/simulator}"
 PORT="${ZEPP_FW_PORT:-8099}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MIRROR="${ZEPP_FW_MIRROR:-$ROOT/vendor/zepp-fw}"
 
-# 1. Ensure the side-service runtime mirror is served locally.
+# 1. Make sure the config points at the project-local mirror.
+"$ROOT/scripts/setup-framework-mirror.sh" >/dev/null
+
+# 2. Serve the mirror locally if it is not already up.
 if ! curl -s -o /dev/null "http://127.0.0.1:$PORT/" 2>/dev/null; then
-  echo "[sim] mirror is down, starting it"
-  "$ROOT/scripts/setup-framework-mirror.sh"
+  echo "[sim] serving $MIRROR on 127.0.0.1:$PORT"
   ( python3 -m http.server "$PORT" --bind 127.0.0.1 \
-      --directory "${ZEPP_FW_MIRROR:-/tmp/zepp-fw}" >/dev/null 2>&1 & )
+      --directory "$MIRROR" >/dev/null 2>&1 & )
   sleep 1
 fi
 
-# 2. Launch from $SIM_DIR (the whole point of this script).
+# 3. Launch from $SIM_DIR (the whole point of this script).
 cd "$SIM_DIR"
 echo "[sim] starting simulator from $(pwd)"
 exec env -u ELECTRON_RUN_AS_NODE -u NODE_OPTIONS "$SIM_DIR/simulator"

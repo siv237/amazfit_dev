@@ -1,6 +1,6 @@
 import * as hmUI from "@zos/ui";
 import { log as Logger } from "@zos/utils";
-import { Time } from "@zos/sensor";
+import { Time, Geolocation } from "@zos/sensor";
 import { BasePage } from "@zeppos/zml/base-page";
 import { STATIONS } from "./stations.js";
 
@@ -66,6 +66,9 @@ let vehicleKmWidget = null;
 let statusWidget = null;
 let lastOk = 0;
 let firstLoadAt = 0;
+let geoPos = null;
+let geolocation = null;
+let geoCallback = null;
 let busA = null;
 let stops = [];
 let summaries = {};
@@ -90,7 +93,7 @@ function clockText() {
 }
 
 function currentPosition() {
-  return DEFAULT_POS;
+  return geoPos || DEFAULT_POS;
 }
 
 function iconFor(type) {
@@ -129,7 +132,8 @@ function shortDir(station) {
 }
 
 function distLabel(station) {
-  const d = Math.round(distanceMeters(DEFAULT_POS.lat, DEFAULT_POS.lng, station));
+  const pos = currentPosition();
+  const d = Math.round(distanceMeters(pos.lat, pos.lng, station));
   return d < 1000 ? `${d} м` : `${(d / 1000).toFixed(1)} км`;
 }
 
@@ -143,10 +147,12 @@ Page(
       } catch (e) {
         logger.log("status bar: " + e);
       }
-      stops = nearestStations(DEFAULT_POS.lat, DEFAULT_POS.lng, NEAREST_N);
+      const pos0 = currentPosition();
+      stops = nearestStations(pos0.lat, pos0.lng, NEAREST_N);
       firstLoadAt = Date.now();
       this.renderList();
       this.loadNearby();
+      this.startGeolocation();
       clockTimer = setInterval(() => this.tick(), 1000);
       refreshTimer = setInterval(() => {
         if (mode === "list") {
@@ -163,6 +169,56 @@ Page(
       if (refreshTimer) clearInterval(refreshTimer);
       clockTimer = null;
       refreshTimer = null;
+      if (geolocation && geoCallback) {
+        try {
+          geolocation.offChange(geoCallback);
+          geolocation.stop();
+        } catch (e) {
+          logger.log("geo stop: " + e);
+        }
+      }
+    },
+
+    startGeolocation() {
+      try {
+        geolocation = new Geolocation();
+        geoCallback = () => this.onGeolocation();
+        geolocation.start();
+        geolocation.onChange(geoCallback);
+        this.onGeolocation();
+      } catch (e) {
+        logger.log("geo start: " + e);
+      }
+    },
+
+    onGeolocation() {
+      try {
+        if (!geolocation || geolocation.getStatus() !== "A") return;
+        const lat = geolocation.getLatitude({ format: "DD" });
+        const lng = geolocation.getLongitude({ format: "DD" });
+        if (typeof lat !== "number" || typeof lng !== "number") return;
+        // Only trust coordinates around Khabarovsk; the simulator currently
+        // reports a fixed location far away (its GPS mock is not wired to
+        // fake_data_gps.dat on this firmware).
+        if (lat < 47.5 || lat > 49.2 || lng < 134.0 || lng > 136.5) {
+          logger.log("geo ignored (out of area): " + lat + "," + lng);
+          return;
+        }
+        const prev = geoPos;
+        geoPos = { lat, lng };
+        const moved = !prev ||
+          distanceMeters(lat, lng, [0, "", "", prev.lat, prev.lng]) > 10;
+        if (moved) {
+          logger.log("geo " + lat.toFixed(5) + "," + lng.toFixed(5));
+          if (mode === "list") {
+            stops = nearestStations(lat, lng, NEAREST_N);
+            this.renderList();
+            this.loadNearby();
+          }
+        }
+      } catch (e) {
+        logger.log("geo cb: " + e);
+      }
     },
 
     tick() {

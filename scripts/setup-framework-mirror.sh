@@ -13,24 +13,37 @@
 # Env:
 #   ZEPP_PROXY       HTTP proxy for the download (default: http://127.0.0.1:17277)
 #   ZEPP_FW_VERSION  framework version        (default: v4.0.0.4)
-#   ZEPP_FW_MIRROR   local mirror directory   (default: /tmp/zepp-fw)
+#   ZEPP_FW_MIRROR   mirror directory        (default: <repo>/vendor/zepp-fw)
 #   ZEPP_FW_PORT     local HTTP port          (default: 8099)
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROXY="${ZEPP_PROXY:-http://127.0.0.1:17277}"
 FW_VERSION="${ZEPP_FW_VERSION:-v4.0.0.4}"
-DIR="${ZEPP_FW_MIRROR:-/tmp/zepp-fw}"
+DIR="${ZEPP_FW_MIRROR:-$ROOT/vendor/zepp-fw}"
 PORT="${ZEPP_FW_PORT:-8099}"
 
 mkdir -p "$DIR/$FW_VERSION"
 
-for f in side-service.html mobile-main-service.js; do
-  url="https://zepp-os.zepp.com/frameworks/$FW_VERSION/$f"
-  echo "[mirror] fetching $f"
-  curl -sL --http1.1 ${PROXY:+-x "$PROXY"} --max-time 180 -o "$DIR/$FW_VERSION/$f" "$url"
-  test -s "$DIR/$FW_VERSION/$f" || { echo "[mirror] empty: $f"; exit 1; }
-done
+# Keep an existing full copy (e.g. committed in vendor/) unless it is missing
+# or truncated. Set ZEPP_FW_FORCE=1 to re-download.
+have_full=0
+if [ -s "$DIR/$FW_VERSION/mobile-main-service.js" ] &&
+   [ "$(wc -c < "$DIR/$FW_VERSION/mobile-main-service.js")" -gt 300000 ]; then
+  have_full=1
+fi
+
+if [ "$have_full" = "0" ] || [ "${ZEPP_FW_FORCE:-0}" = "1" ]; then
+  for f in side-service.html mobile-main-service.js; do
+    url="https://zepp-os.zepp.com/frameworks/$FW_VERSION/$f"
+    echo "[mirror] fetching $f"
+    curl -sL --http1.1 ${PROXY:+-x "$PROXY"} --max-time 180 -o "$DIR/$FW_VERSION/$f" "$url"
+    test -s "$DIR/$FW_VERSION/$f" || { echo "[mirror] empty: $f"; exit 1; }
+  done
+else
+  echo "[mirror] using existing $DIR/$FW_VERSION"
+fi
 
 size=$(wc -c < "$DIR/$FW_VERSION/mobile-main-service.js")
 echo "[mirror] mobile-main-service.js = $size bytes (expect ~448862)"

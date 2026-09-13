@@ -209,3 +209,22 @@ deviceSources 9765120/9765121/10158337). Обновлён `entities/khabarovsk-b
 Добавлен `scripts/run-simulator.sh` (поднимает зеркало и запускает из
 `/opt/simulator`), обновлены `procedures/simulator-dev.md` и `troubleshooting.md`.
 Проверено: «Курс ЦБ РФ» на GTS 4 снова показывает USD 84.26 / EUR 97.87 / CNY 12.55.
+
+## [2026-09-13] fix | Устойчивый запуск: cwd + патчи симулятора + dev.sh
+Причина `C:shake timeout`: симулятор запускался не из `/opt/simulator` (нужен cwd
+`/opt/simulator`), плюс закрытие detached-DevTools рвало side-service binding.
+Сделано: `scripts/patch-simulator.sh` (сетевой автопатч QEMU GTS4/Bip6 + байт-патч
+`app.asar`, чтобы закрытие DevTools не сбрасывало привязку), `scripts/run-simulator.sh`
+(зеркало из `vendor/zepp-fw` + запуск из `/opt/simulator`), `scripts/dev.sh`
+(интерактив и флаги `-p/-a/--no-watch/--gps*`), `scripts/sim_devices.py`,
+`scripts/click_emulator.py`, `scripts/set_gps.py`. Проверено на GTS 4 и Bip 6:
+`side-service поднялся`, реальные рейсы (`М-68`, `А-21`). Тесты — на Xvfb `:99`.
+
+## [2026-09-13] GPS | Инъекция fake_data_gps.dat не управляет Geolocation
+`s
+et_gps.py` корректно кладёт NMEA в `/virtual_sensor_data/fake_data_gps.dat`
+(проверено чтением из образа), но устройство в симуляторе возвращает фиксированное
+`34.05222,118.25167` и после подмены файла. В панели **Sensors** поля GPS нет.
+Вывод: способ из raw-промта на этой прошивке/симуляторе не работает; канал мока GPS
+нужно искать дальше. В приложении добавлена защита: координаты вне Хабаровска
+игнорируются (fallback на DEFAULT_POS).
