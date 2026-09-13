@@ -48,16 +48,36 @@ fi
 size=$(wc -c < "$DIR/$FW_VERSION/mobile-main-service.js")
 echo "[mirror] mobile-main-service.js = $size bytes (expect ~448862)"
 
+# Mirror the phone-side Settings App runtime (used by the simulator's Settings
+# window). It is also truncated on the direct path.
+AS_DIR="$DIR/app-settings/v1.0.1"
+AS_VERSION="v1.0.1"
+mkdir -p "$AS_DIR"
+if [ ! -s "$AS_DIR/index.html" ] || [ "${ZEPP_FW_FORCE:-0}" = "1" ]; then
+  echo "[mirror] fetching app-settings/$AS_VERSION/index.html"
+  curl -sL --http1.1 ${PROXY:+-x "$PROXY"} --max-time 120 \
+    -o "$AS_DIR/index.html" "https://zepp-os.zepp.com/app-settings/$AS_VERSION/index.html"
+fi
+as_js=$(grep -oE 'app-settings[^"]+\.prod\.js' "$AS_DIR/index.html" | head -1)
+if [ -n "$as_js" ] && { [ ! -s "$AS_DIR/$as_js" ] || [ "${ZEPP_FW_FORCE:-0}" = "1" ]; }; then
+  echo "[mirror] fetching app-settings/$AS_VERSION/$as_js"
+  curl -sL --http1.1 ${PROXY:+-x "$PROXY"} --max-time 180 \
+    -o "$AS_DIR/$as_js" "https://zepp-os.zepp.com/app-settings/$AS_VERSION/$as_js"
+fi
+
 cat > "$HOME/.zepp/.simulator.config.js" <<EOF
 module.exports = {
   simulator: {
     "side-service": {
       url: "http://127.0.0.1:$PORT/$FW_VERSION/side-service.html",
     },
+    "setting-service": {
+      url: "http://127.0.0.1:$PORT/app-settings/$AS_VERSION/index.html",
+    },
   },
 };
 EOF
-echo "[mirror] wrote ~/.zepp/.simulator.config.js -> http://127.0.0.1:$PORT/$FW_VERSION/side-service.html"
+echo "[mirror] wrote ~/.zepp/.simulator.config.js -> side-service + setting-service"
 
 if [ "${1:-}" = "--serve" ]; then
   echo "[mirror] serving $DIR on 127.0.0.1:$PORT"
