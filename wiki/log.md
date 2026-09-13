@@ -252,3 +252,13 @@ deviceSources 9765120/9765121/10158337). Обновлён `entities/khabarovsk-b
 (точка/трек), app-side считает текущую позицию по времени и скорости.
 Проверено: `--gps-random 12 --gps-speed 40` — остановки в приложении пересчитываются
 по ходу движения (48.44,135.16 → Промывочная/Индустриальная/Авангард).
+
+## [2026-09-13] gps | Провайдер позиции и страница настроек
+Создана страница [procedures/gps-simulation.md](procedures/gps-simulation.md): зафиксировано,
+что `Geolocation` в симуляторе отдаёт фиксированную точку и `fake_data_gps.dat` не
+управляет ей, а рабочее решение — app-side провайдер (`GET_POSITION` + `gps.json`),
+плюс команды `dev.sh --gps/--gps-track/--gps-random`.
+Также добавлена страница настроек (`setting/index.js`, ручной ввод мест
+название+lat+lng) и локальное зеркало рантайма Settings App
+(`vendor/zepp-fw/app-settings/`, `simulator.setting-service.url`), т.к. он тоже
+обрезался с `zepp-os.zepp.com`.

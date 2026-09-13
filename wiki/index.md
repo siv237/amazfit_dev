@@ -45,4 +45,5 @@
 - [procedures/simulator-dev.md](procedures/simulator-dev.md) — запуск эмулятора и `zeus dev`
 - [procedures/app-development.md](procedures/app-development.md) — приложения в `apps/`, скрипт деплоя, сеть
 - [procedures/khabarovsk-transit-integration.md](procedures/khabarovsk-transit-integration.md) — план приложения «транспорт на остановке»
+- [procedures/gps-simulation.md](procedures/gps-simulation.md) — подача GPS в эмулятор/часы (провайдер)
 - [procedures/troubleshooting.md](procedures/troubleshooting.md) — типовые ошибки

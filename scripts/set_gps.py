@@ -193,11 +193,13 @@ def main():
     ap.add_argument("--restore", action="store_true", help="restore norflash.bin.bak")
     args = ap.parse_args()
 
+    need_img = not (args.provider_only or args.out)
     img = args.img or (resolve_img(args.model) if args.model else None)
-    if not img:
-        sys.exit("[gps] specify --img or a known --model")
-    if not os.path.exists(img):
-        sys.exit(f"[gps] image not found: {img}")
+    if need_img:
+        if not img:
+            sys.exit("[gps] specify --img or a known --model")
+        if not os.path.exists(img):
+            sys.exit(f"[gps] image not found: {img}")
 
     if args.restore:
         bak = img + ".bak"
