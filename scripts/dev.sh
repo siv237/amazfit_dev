@@ -119,9 +119,10 @@ pkill -9 -x simulator 2>/dev/null || true
 sleep 2
 
 # --- 3b. Inject mocked GPS (only when --gps* is given; image must be idle) ---
+PROVIDER_OUT="$ROOT/vendor/zepp-fw/gps.json"
 if [ -n "$GPS_KIND" ]; then
   for _ in $(seq 1 15); do pgrep -x qemu-system-arm >/dev/null || break; sleep 1; done
-  GPS_ARGS=(--model "$MODEL")
+  GPS_ARGS=(--model "$MODEL" --provider-out "$PROVIDER_OUT")
   case "$GPS_KIND" in
     static) GPS_ARGS+=(--lat "$GPS_LAT" --lng "$GPS_LNG") ;;
     track)  GPS_ARGS+=(--track "$GPS_VALUE") ;;
@@ -132,6 +133,10 @@ if [ -n "$GPS_KIND" ]; then
   echo "[dev] GPS: $GPS_KIND ${GPS_VALUE:-${GPS_LAT:+$GPS_LAT,$GPS_LNG}}"
   timeout 120 python3 -u "$ROOT/scripts/set_gps.py" "${GPS_ARGS[@]}" \
     || echo "[dev] ВНИМАНИЕ: GPS не применён (продолжаю без него)"
+else
+  python3 -u "$ROOT/scripts/set_gps.py" --provider-only \
+    --provider-out "$PROVIDER_OUT" --lat 48.5000302 --lng 135.0979337 >/dev/null
+  echo "[dev] GPS: центр Хабаровска (по умолчанию)"
 fi
 
 LOG="${TMPDIR:-/tmp}/zepp-sim.log"

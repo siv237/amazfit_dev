@@ -192,6 +192,79 @@ async function loadNearby(res, sids) {
   }
 }
 
+// Assistant/test position provider. In the simulator the host serves
+// http://127.0.0.1:8099/gps.json; on a real phone this request fails and the
+// watch uses its own GNSS (Geolocation).
+const GPS_URL = "http://127.0.0.1:8099/gps.json";
+let gpsStart = 0;
+
+function hav(a, b) {
+  const R = 6371000;
+  const p1 = toRad(a[0]);
+  const p2 = toRad(b[0]);
+  const dp = toRad(b[0] - a[0]);
+  const dl = toRad(b[1] - a[1]);
+  const h =
+    Math.sin(dp / 2) ** 2 +
+    Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function computePosition(d) {
+  if (!d) return null;
+  if (typeof d.lat === "number" && typeof d.lng === "number") {
+    return { lat: d.lat, lng: d.lng };
+  }
+  const pts = d.points;
+  if (!pts || pts.length < 2) return null;
+  if (!gpsStart) gpsStart = Date.now();
+  const speed = ((d.speedKmh || 20) / 3.6);
+  let dist = speed * ((Date.now() - gpsStart) / 1000);
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) total += hav(pts[i - 1], pts[i]);
+  if (total <= 0) return null;
+  if (d.loop !== false) dist %= total;
+  if (dist > total) dist = total;
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const seg = hav(pts[i - 1], pts[i]);
+    if (acc + seg >= dist) {
+      const f = seg > 0 ? (dist - acc) / seg : 0;
+      return {
+        lat: pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f,
+        lng: pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f,
+      };
+    }
+    acc += seg;
+  }
+  return { lat: pts[pts.length - 1][0], lng: pts[pts.length - 1][1] };
+}
+
+function loadPosition(res) {
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", GPS_URL, true);
+    xhr.timeout = 3000;
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          res(null, computePosition(JSON.parse(xhr.responseText)));
+        } catch (e) {
+          res(null, null);
+        }
+      } else {
+        res(null, null);
+      }
+    };
+    xhr.ontimeout = () => res(null, null);
+    xhr.onerror = () => res(null, null);
+    xhr.send();
+  } catch (e) {
+    res(null, null);
+  }
+}
+
 AppSideService(
   BaseSideService({
     onInit() {},
@@ -204,6 +277,8 @@ AppSideService(
         loadNearby(res, (req.params && req.params.sids) || []);
       } else if (req.method === "GET_VEHICLE") {
         loadVehicle(res, req.params || {});
+      } else if (req.method === "GET_POSITION") {
+        loadPosition(res);
       }
     },
 

@@ -186,6 +186,9 @@ def main():
     ap.add_argument("--date", default="2026-01-15")
     ap.add_argument("--start", default="02:00:00")
     ap.add_argument("--out", help="write NMEA here and stop (do not inject)")
+    ap.add_argument("--provider-out", help="also write a JSON position file for the app-side provider")
+    ap.add_argument("--provider-only", action="store_true",
+                    help="write the provider file but do not touch norflash.bin")
     ap.add_argument("--restore", action="store_true", help="restore norflash.bin.bak")
     args = ap.parse_args()
 
@@ -219,6 +222,18 @@ def main():
     header = read_header(img)
     lines = build_lines(pts, args.speed_kmh, args.seconds, args.date, args.start, header)
 
+    if args.provider_out:
+        payload = (
+            {"lat": pts[0][0], "lng": pts[0][1]}
+            if len(pts) == 1
+            else {"points": [[a, b] for a, b in pts],
+                  "speedKmh": args.speed_kmh, "loop": True}
+        )
+        os.makedirs(os.path.dirname(args.provider_out), exist_ok=True)
+        with open(args.provider_out, "w", encoding="utf-8") as f:
+            json.dump(payload, f)
+        print(f"[gps] provider position -> {args.provider_out}")
+
     tmp = args.out or tempfile.NamedTemporaryFile(
         delete=False, suffix=".nmea").name
     with open(tmp, "w", encoding="utf-8", newline="\n") as f:
@@ -228,6 +243,8 @@ def main():
 
     if args.out:
         print(f"[gps] written {args.out}")
+        return
+    if args.provider_only:
         return
 
     bak = img + ".bak"

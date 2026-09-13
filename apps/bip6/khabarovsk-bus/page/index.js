@@ -69,6 +69,7 @@ let firstLoadAt = 0;
 let geoPos = null;
 let geolocation = null;
 let geoCallback = null;
+let providerTimer = null;
 let busA = null;
 let stops = [];
 let summaries = {};
@@ -153,6 +154,7 @@ Page(
       this.renderList();
       this.loadNearby();
       this.startGeolocation();
+      this.startProvider();
       clockTimer = setInterval(() => this.tick(), 1000);
       refreshTimer = setInterval(() => {
         if (mode === "list") {
@@ -169,6 +171,8 @@ Page(
       if (refreshTimer) clearInterval(refreshTimer);
       clockTimer = null;
       refreshTimer = null;
+      if (providerTimer) clearInterval(providerTimer);
+      providerTimer = null;
       if (geolocation && geoCallback) {
         try {
           geolocation.offChange(geoCallback);
@@ -191,6 +195,42 @@ Page(
       }
     },
 
+    // Position from the companion (app-side). On a real watch this is the
+    // GNSS/assisted position; in the simulator the host returns a test point.
+    startProvider() {
+      this.pollProvider();
+      if (providerTimer) clearInterval(providerTimer);
+      providerTimer = setInterval(() => this.pollProvider(), 3000);
+    },
+
+    pollProvider() {
+      try {
+        this.request({ method: "GET_POSITION" })
+          .then((data) => {
+            if (data && typeof data.lat === "number" && typeof data.lng === "number") {
+              this.applyPosition(data.lat, data.lng, "provider");
+            }
+          })
+          .catch(() => {});
+      } catch (e) {
+        logger.log("provider: " + e);
+      }
+    },
+
+    applyPosition(lat, lng, source) {
+      const prev = geoPos;
+      const moved = !prev ||
+        distanceMeters(lat, lng, [0, "", "", prev.lat, prev.lng]) > 10;
+      if (!moved) return;
+      geoPos = { lat, lng };
+      logger.log("pos[" + source + "] " + lat.toFixed(5) + "," + lng.toFixed(5));
+      if (mode === "list") {
+        stops = nearestStations(lat, lng, NEAREST_N);
+        this.renderList();
+        this.loadNearby();
+      }
+    },
+
     onGeolocation() {
       try {
         if (!geolocation || geolocation.getStatus() !== "A") return;
@@ -198,24 +238,11 @@ Page(
         const lng = geolocation.getLongitude({ format: "DD" });
         if (typeof lat !== "number" || typeof lng !== "number") return;
         // Only trust coordinates around Khabarovsk; the simulator currently
-        // reports a fixed location far away (its GPS mock is not wired to
-        // fake_data_gps.dat on this firmware).
+        // reports a fixed location far away, so the provider is used there.
         if (lat < 47.5 || lat > 49.2 || lng < 134.0 || lng > 136.5) {
-          logger.log("geo ignored (out of area): " + lat + "," + lng);
           return;
         }
-        const prev = geoPos;
-        geoPos = { lat, lng };
-        const moved = !prev ||
-          distanceMeters(lat, lng, [0, "", "", prev.lat, prev.lng]) > 10;
-        if (moved) {
-          logger.log("geo " + lat.toFixed(5) + "," + lng.toFixed(5));
-          if (mode === "list") {
-            stops = nearestStations(lat, lng, NEAREST_N);
-            this.renderList();
-            this.loadNearby();
-          }
-        }
+        this.applyPosition(lat, lng, "gnss");
       } catch (e) {
         logger.log("geo cb: " + e);
       }

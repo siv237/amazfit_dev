@@ -4,3 +4,4 @@ apps/*/*/dist/
 apps/*/*/.zeus/
 *.zab
 sim-debug.log
+vendor/zepp-fw/gps.json
