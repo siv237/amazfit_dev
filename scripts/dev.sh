@@ -198,19 +198,25 @@ DEPLOY_LOG="${TMPDIR:-/tmp}/zepp-deploy.log"
 DPID=$!
 echo "[dev] деплою $FOLDER/$APP_ARG на $MODEL (pid $DPID)"
 
-up=0
-for _ in $(seq 1 75); do
-  if [ -f "$SIM_LOG" ] && tail -n +$((before + 1)) "$SIM_LOG" 2>/dev/null | grep -q "shake success"; then
-    up=1; break
+HOOK_APP=0
+grep -q '"app-side"' "$ROOT/apps/$FOLDER/$APP_ARG/app.json" 2>/dev/null && HOOK_APP=1
+if [ "$HOOK_APP" = "1" ]; then
+  up=0
+  for _ in $(seq 1 75); do
+    if [ -f "$SIM_LOG" ] && tail -n +$((before + 1)) "$SIM_LOG" 2>/dev/null | grep -q "shake success"; then
+      up=1; break
+    fi
+    kill -0 "$DPID" 2>/dev/null || true
+    sleep 2
+  done
+  if [ "$up" = "1" ]; then
+    echo "[dev] side-service поднялся — сеть в приложении работает"
+  else
+    echo "[dev] ВНИМАНИЕ: не увидел 'shake success' за 150с (лог: $DEPLOY_LOG)"
   fi
-  kill -0 "$DPID" 2>/dev/null || true
-  sleep 2
-done
-
-if [ "$up" = "1" ]; then
-  echo "[dev] side-service поднялся — сеть в приложении работает"
 else
-  echo "[dev] ВНИМАНИЕ: не увидел 'shake success' за 150с (лог: $DEPLOY_LOG)"
+  echo "[dev] у приложения нет app-side — жду установку"
+  sleep 15
 fi
 
 if [ "$WATCH" = "1" ]; then
