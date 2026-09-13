@@ -70,7 +70,7 @@ AppSettingsPage({
         [
           Text(
             { style: { flex: "1", fontSize: "14px", color: "#222" } },
-            [p.name + "  —  " + p.lat + ", " + p.lng],
+            p.name + "  —  " + p.lat + ", " + p.lng,
           ),
           Button({
             label: "Удалить",
@@ -90,10 +90,7 @@ AppSettingsPage({
     return View({ style: { padding: "16px" } }, [
       Text(
         { paragraph: true, style: { fontSize: "13px", color: "#888", marginBottom: "12px" } },
-        [
-          "Формат: Название + Широта + Долгота. " +
-            "Пример: Дом, 48.4827, 135.0838 (дробная часть — точка или запятая).",
-        ],
+        "Формат: Название + Широта + Долгота. Пример: Дом, 48.4827, 135.0838 (дробная часть — точка или запятая).",
       ),
       View(
         {
@@ -127,7 +124,7 @@ AppSettingsPage({
           self.state.status
             ? Text(
                 { style: { fontSize: "12px", color: "#409EFF", marginLeft: "12px" } },
-                [self.state.status],
+                self.state.status,
               )
             : null,
         ],
