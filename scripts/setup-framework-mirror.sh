@@ -50,8 +50,8 @@ echo "[mirror] mobile-main-service.js = $size bytes (expect ~448862)"
 
 # Mirror the phone-side Settings App runtime (used by the simulator's Settings
 # window). It is also truncated on the direct path.
-AS_DIR="$DIR/app-settings/v1.0.1"
-AS_VERSION="v1.0.1"
+AS_VERSION="${ZEPP_AS_VERSION:-v1.0.1}"
+AS_DIR="$DIR/app-settings/$AS_VERSION"
 mkdir -p "$AS_DIR"
 if [ ! -s "$AS_DIR/index.html" ] || [ "${ZEPP_FW_FORCE:-0}" = "1" ]; then
   echo "[mirror] fetching app-settings/$AS_VERSION/index.html"
