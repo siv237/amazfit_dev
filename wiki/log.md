@@ -262,3 +262,11 @@ deviceSources 9765120/9765121/10158337). Обновлён `entities/khabarovsk-b
 название+lat+lng) и локальное зеркало рантайма Settings App
 (`vendor/zepp-fw/app-settings/`, `simulator.setting-service.url`), т.к. он тоже
 обрезался с `zepp-os.zepp.com`.
+
+## [2026-09-13] lint | Пустой Settings App — это блокировка zepp-os.zepp.com (РКН)
+Разобрались: страница настроек на телефоне пустая, потому что Zepp App не может
+загрузить рантайм `app-settings` с `zepp-os.zepp.com` (блокировка/обрыв без VPN).
+С VPN настройки открываются и у нашего приложения, и у эталонных (в т.ч. официальный
+todo-list). В контейнере то же самое обходится локальным зеркалом (`setting-service.url`,
+`ZEPP_AS_VERSION`). Код `setting/index.js` был в порядке. Добавлен раздел в
+`procedures/troubleshooting.md`.
