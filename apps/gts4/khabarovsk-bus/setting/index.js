@@ -1,4 +1,3 @@
-import { gettext } from "i18n";
 
 AppSettingsPage({
   state: {
