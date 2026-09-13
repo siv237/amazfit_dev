@@ -221,8 +221,7 @@ deviceSources 9765120/9765121/10158337). Обновлён `entities/khabarovsk-b
 `side-service поднялся`, реальные рейсы (`М-68`, `А-21`). Тесты — на Xvfb `:99`.
 
 ## [2026-09-13] GPS | Инъекция fake_data_gps.dat не управляет Geolocation
-`s
-et_gps.py` корректно кладёт NMEA в `/virtual_sensor_data/fake_data_gps.dat`
+`set_gps.py` корректно кладёт NMEA в `/virtual_sensor_data/fake_data_gps.dat`
 (проверено чтением из образа), но устройство в симуляторе возвращает фиксированное
 `34.05222,118.25167` и после подмены файла. В панели **Sensors** поля GPS нет.
 Вывод: способ из raw-промта на этой прошивке/симуляторе не работает; канал мока GPS
