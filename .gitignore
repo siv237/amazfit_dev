@@ -5,3 +5,4 @@ apps/*/*/.zeus/
 *.zab
 sim-debug.log
 vendor/zepp-fw/gps.json
+preview_qr.png
