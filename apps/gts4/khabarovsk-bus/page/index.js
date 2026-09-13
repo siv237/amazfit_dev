@@ -64,6 +64,10 @@ let busNumberWidget = null;
 let vehicleWidget = null;
 let vehicleKmWidget = null;
 let statusWidget = null;
+let gpsWidget = null;
+let gnssStatus = "";
+let gnssInArea = false;
+let providerAt = 0;
 let lastOk = 0;
 let firstLoadAt = 0;
 let geoPos = null;
@@ -218,6 +222,7 @@ Page(
     },
 
     applyPosition(lat, lng, source) {
+      if (source === "provider") providerAt = Date.now();
       const prev = geoPos;
       const moved = !prev ||
         distanceMeters(lat, lng, [0, "", "", prev.lat, prev.lng]) > 10;
@@ -233,15 +238,19 @@ Page(
 
     onGeolocation() {
       try {
-        if (!geolocation || geolocation.getStatus() !== "A") return;
+        if (!geolocation) return;
+        gnssStatus = geolocation.getStatus() || "";
+        if (gnssStatus !== "A") return;
         const lat = geolocation.getLatitude({ format: "DD" });
         const lng = geolocation.getLongitude({ format: "DD" });
         if (typeof lat !== "number" || typeof lng !== "number") return;
         // Only trust coordinates around Khabarovsk; the simulator currently
         // reports a fixed location far away, so the provider is used there.
         if (lat < 47.5 || lat > 49.2 || lng < 134.0 || lng > 136.5) {
+          gnssInArea = false;
           return;
         }
+        gnssInArea = true;
         this.applyPosition(lat, lng, "gnss");
       } catch (e) {
         logger.log("geo cb: " + e);
@@ -256,6 +265,10 @@ Page(
         const age = lastOk ? (Date.now() - lastOk) / 1000 : 0;
         statusWidget.setProperty(hmUI.prop.TEXT, this.statusText());
         statusWidget.setProperty(hmUI.prop.COLOR, this.statusColor(age));
+      }
+      if (gpsWidget) {
+        gpsWidget.setProperty(hmUI.prop.TEXT, "GPS");
+        gpsWidget.setProperty(hmUI.prop.COLOR, this.gpsColor());
       }
       if (mode === "bus") {
         if (busNumberWidget && busA) {
@@ -287,6 +300,7 @@ Page(
       vehicleWidget = null;
       vehicleKmWidget = null;
       statusWidget = null;
+      gpsWidget = null;
     },
 
     statusColor(age) {
@@ -310,11 +324,26 @@ Page(
 
     statusLine() {
       statusWidget = this.text(
-        34, 392, W - 68, 22, this.statusText(), 15, this.statusColor(
+        34, 392, W - 130, 22, this.statusText(), 15, this.statusColor(
           lastOk ? (Date.now() - lastOk) / 1000 : 0
         ),
         hmUI.align.LEFT
       );
+      gpsWidget = this.text(
+        W - 12 - 70, 392, 70, 22, "GPS", 15, this.gpsColor(),
+        hmUI.align.RIGHT
+      );
+    },
+
+    gpsColor() {
+      return this.gpsSignal() ? C.green : C.red;
+    },
+
+    gpsSignal() {
+      const now = Date.now();
+      if (gnssStatus === "A" && gnssInArea) return true;
+      if (providerAt && now - providerAt < 15000) return true;
+      return false;
     },
 
     text(x, y, w, h, text, size, color, align, alignV) {
